@@ -47,3 +47,9 @@ aur-helper --debug [command] [arguments]
 ```
 
 ---
+
+### Disclaimer
+
+The use of this script is at your own risk. I am is not responsible for any damage or loss that may arise from using this script. This is a private project and is provided "as is" without any guarantees or warranty.
+
+---
