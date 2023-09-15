@@ -2,98 +2,80 @@
 
 import os
 import sys
-import shutil
 import subprocess
+import shutil
 
 AUR_DIR = os.path.expanduser("~/.aur-helper")
+DEBUG = False
 
-DEBUG = "--debug" in sys.argv
+def run_cmd_with_output(cmd, cwd=None):
+    try:
+        result = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, universal_newlines=True)
+        if DEBUG:
+            print(result.stdout)
+            print(result.stderr, file=sys.stderr)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(e.output, file=sys.stderr)
+        return False
 
-def run_cmd(cmd):
-    if DEBUG:
-        print(f"Executing: {' '.join(cmd)}\n")
-        process = subprocess.Popen(cmd)
-    else:
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    _, stderr = process.communicate()
+def rollback_installation(pkg_name):
+    pkg_path = os.path.join(AUR_DIR, pkg_name)
+    if os.path.exists(pkg_path):
+        shutil.rmtree(pkg_path)
+        print(f"==> Rolled back changes for {pkg_name}.")
 
-    if process.returncode != 0:
-        return stderr.decode() if stderr else 'Unknown error.'
-    return None
 
-def run_cmd_with_output(cmd):
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    return process.returncode, stdout.decode(), stderr.decode()
+def install_package(repositories):
+    for repo in repositories:
+        repo_name = repo.split('/')[-1].replace('.git', '')
+        if not os.path.exists(os.path.join(AUR_DIR, repo_name)):
+            if run_cmd_with_output(['git', 'clone', repo], AUR_DIR):
+                if run_cmd_with_output(['makepkg', '-si', '--noconfirm'], os.path.join(AUR_DIR, repo_name)):
+                    print(f"==> Successfully installed {repo_name}")
+                else:
+                    rollback_installation(repo_name)
+                    print(f"==> ERROR: Could not install {repo_name}")
+                    sys.exit(1)
+            else:
+                rollback_installation(repo_name)
+                print(f"==> ERROR: Could not clone repository for {repo_name}")
+                sys.exit(1)
+        else:
+            print(f"{repo_name} is already installed. Use 'update' to update it.")
 
-def install_package(git_url):
-    package_name = git_url.split("/")[-1].replace(".git", "")
-    print(f"Installing package: {package_name}")
+def remove_package(packages):
+    for pkg in packages:
+        pkg_dir = os.path.join(AUR_DIR, pkg)
+        if os.path.exists(pkg_dir):
+            if run_cmd_with_output(['sudo', 'pacman', '-Rns', '--noconfirm', pkg]):
+                shutil.rmtree(pkg_dir)
+                print(f"==> Successfully removed {pkg}")
+            else:
+                print(f"==> ERROR: Could not remove {pkg}. Please check if it's correctly installed or if it's a valid package name.")
+        else:
+            print(f"{pkg} is not managed by aur-helper or doesn't exist.")
 
-    os.makedirs(AUR_DIR, exist_ok=True)
-    os.chdir(AUR_DIR)
-
-    error = run_cmd(["git", "clone", git_url])
-    if error:
-        print(f"==> ERROR: Could not clone {package_name}. Message: {error}")
-        print("Rolling back installation steps...")
-        rollback_installation(package_name)
-        sys.exit(1)
-
-    os.chdir(package_name)
-    error = run_cmd(["makepkg", "-si", "--noconfirm"])
-    if error:
-        print(f"==> ERROR: Could not install {package_name}. Message: {error}")
-        print("Rolling back installation steps...")
-        rollback_installation(package_name)
-        sys.exit(1)
-
-    print(f"Package {package_name} was successfully installed!")
-
-def rollback_installation(package_name):
-    package_path = os.path.join(AUR_DIR, package_name)
-    if os.path.exists(package_path):
-        print(f"Removing cloned directory: {package_path}")
-        shutil.rmtree(package_path)
-    else:
-        print("No cloned directory found. Nothing to rollback.")
-
-def remove_package(package_name):
-    print(f"Attempting to remove package: {package_name}")
-
-    error = run_cmd(["sudo", "pacman", "-Rns", package_name, "--noconfirm"])
-    if error:
-        print(f"==> ERROR: Could not remove {package_name}. Message: {error}")
-        sys.exit(1)
-
-    # Remove the directory from ~/.aur-helper
-    package_dir = os.path.join(AUR_DIR, package_name)
-    if os.path.exists(package_dir):
-        print(f"Removing directory: {package_dir}")
-        shutil.rmtree(package_dir)
-
-    print(f"Package {package_name} was successfully removed!")
 
 def update_packages():
-    no_updates = True  # Initially assume no packages need updates
-
-    for item in os.listdir(AUR_DIR):
-        path = os.path.join(AUR_DIR, item)
-        if os.path.isdir(path):
-            print(f"Checking updates for: {item}")
-            os.chdir(path)
-
-            _, stdout, _ = run_cmd_with_output(["git", "pull"])
-
-            if not "Already up to date." in stdout:
-                no_updates = False  # An update was found for at least one package
-                error = run_cmd(["makepkg", "-si", "--noconfirm"])
-                if error:
-                    print(f"==> ERROR: Could not update {item}. Message: {error}")
+    updates_available = False
+    for dir_name in os.listdir(AUR_DIR):
+        dir_path = os.path.join(AUR_DIR, dir_name)
+        if os.path.isdir(dir_path):
+            print(f"==> Checking updates for {dir_name}")
+            git_result = subprocess.run(["git", "pull"], cwd=dir_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            if DEBUG:
+                print(git_result.stdout)
+            if not git_result.returncode == 0 or "Already up to date." not in git_result.stdout:
+                updates_available = True
+                if run_cmd_with_output(['makepkg', '-si', '--noconfirm'], dir_path):
+                    print(f"==> Successfully updated {dir_name}")
+                else:
+                    print(f"==> ERROR: Could not update {dir_name}")
                     sys.exit(1)
-
-    if no_updates:
+    if not updates_available:
         print("Nothing to do.")
+
 def list_packages():
     if not os.path.exists(AUR_DIR):
         print("No AUR packages installed by aur-helper.")
@@ -107,7 +89,6 @@ def list_packages():
         for pkg in packages:
             print(f"- {pkg}")
 
-
 if __name__ == "__main__":
     if "--debug" in sys.argv:
         DEBUG = True
@@ -120,9 +101,9 @@ if __name__ == "__main__":
     action = sys.argv[1]
 
     if action == "install" and len(sys.argv) > 2:
-        install_package(sys.argv[2])
+        install_package(sys.argv[2:])
     elif action == "remove" and len(sys.argv) > 2:
-        remove_package(sys.argv[2])
+        remove_package(sys.argv[2:])
     elif action == "update":
         update_packages()
     elif action == "list":

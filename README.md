@@ -1,61 +1,42 @@
 # AUR Helper
 
-A simple tool to manage AUR packages on Arch Linux.
+AUR Helper is a simple Python script designed to simplify the process of installing, updating, removing, and listing AUR packages on an Arch Linux system.
 
-### Features
+## Features
 
-- **Installation**: Easily install packages directly from git repositories.
-- **Update**: Update all installed AUR packages.
-- **Removal**: Remove installed AUR packages and their associated data.
-- **Listing**: View all AUR packages installed via this script.
+- **Install AUR packages** directly using Git repository URLs.
+- **Update all installed AUR packages** with a single command.
+- **Remove specific AUR packages** that were installed using this script.
+- **List all installed AUR packages** managed by this script.
 
-### Disclaimer
+## Disclaimer
 
-The use of this script is at your own risk. The author is not responsible for any damage or loss that may arise from using this script. This is a private project and is provided "as is" without any guarantees or warranty.
+Usage of this script is at your own risk. The author is not responsible for any damage or issues caused by this script, as it is a private project.
 
-### Usage
+## Usage
 
-1. **Installing AUR Packages**:
+1. **Install Packages**
+    ```
+    aur-helper install [link-to-git-repository1] [link-to-git-repository2] ...
+    ```
 
-   Use the `install` command followed by the link to the git repository.
-   
-   ```bash
-   aur-helper install [link-to-git-repository]
+2. **Remove Packages**
+    ```
+    aur-helper remove [packagename1] [packagename2] ...
+    ```
+
+3. **Update Installed Packages**
+    ```
+    aur-helper update
+    ```
+
+4. **List Installed Packages**
+    ```
+    aur-helper list
+    ```
+
+5. **Debug Mode**  
+   Add the `--debug` flag to see detailed output of the commands:
    ```
-   
-   In case of errors during the installation, the tool will automatically rollback any changes made during the installation process and provide feedback.
-
-2. **Updating AUR Packages**:
-
-   Simply use the `update` command to update all the installed AUR packages.
-   
-   ```bash
-   aur-helper update
+   aur-helper --debug install [link-to-git-repository]
    ```
-
-3. **Removing AUR Packages**:
-
-   Use the `remove` command followed by the package name you wish to remove.
-   
-   ```bash
-   aur-helper remove [packagename]
-   ```
-
-   This will also remove the associated package data from `~/.aur-helper`.
-
-4. **Listing AUR Packages**:
-
-   Use the `list` command to display all the AUR packages installed via this script.
-   
-   ```bash
-   aur-helper list
-   ```
-
-### Debugging
-
-For detailed output, use the `--debug` argument. This provides verbose information which can be useful for troubleshooting.
-
-```bash
-aur-helper --debug [command] [arguments]
-```
-
