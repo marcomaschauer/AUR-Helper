@@ -1,4 +1,4 @@
-## AUR Helper
+# AUR Helper
 
 A simple tool to manage AUR packages on Arch Linux.
 
@@ -8,6 +8,10 @@ A simple tool to manage AUR packages on Arch Linux.
 - **Update**: Update all installed AUR packages.
 - **Removal**: Remove installed AUR packages and their associated data.
 - **Listing**: View all AUR packages installed via this script.
+
+### Disclaimer
+
+The use of this script is at your own risk. The author is not responsible for any damage or loss that may arise from using this script. This is a private project and is provided "as is" without any guarantees or warranty.
 
 ### Usage
 
@@ -55,6 +59,3 @@ For detailed output, use the `--debug` argument. This provides verbose informati
 aur-helper --debug [command] [arguments]
 ```
 
-### Disclaimer
-
-The use of this script is at your own risk. The author is not responsible for any damage or loss that may arise from using this script. This is a private project and is provided "as is" without any guarantees or warranty.
