@@ -94,13 +94,27 @@ def update_packages():
 
     if no_updates:
         print("Nothing to do.")
+def list_packages():
+    if not os.path.exists(AUR_DIR):
+        print("No AUR packages installed by aur-helper.")
+        return
+
+    packages = [d for d in os.listdir(AUR_DIR) if os.path.isdir(os.path.join(AUR_DIR, d))]
+    if not packages:
+        print("No AUR packages installed by aur-helper.")
+    else:
+        print("Installed AUR packages:")
+        for pkg in packages:
+            print(f"- {pkg}")
+
 
 if __name__ == "__main__":
-    if DEBUG:  # If --debug is present, remove it from sys.argv for further processing
+    if "--debug" in sys.argv:
+        DEBUG = True
         sys.argv.remove("--debug")
 
     if len(sys.argv) < 2:
-        print("Usage: aur-helper [install|remove|update] <args>")
+        print("Usage: aur-helper [install|remove|update|list] <args>")
         sys.exit(1)
 
     action = sys.argv[1]
@@ -111,7 +125,8 @@ if __name__ == "__main__":
         remove_package(sys.argv[2])
     elif action == "update":
         update_packages()
+    elif action == "list":
+        list_packages()
     else:
         print("Invalid command or missing arguments")
         sys.exit(1)
-
